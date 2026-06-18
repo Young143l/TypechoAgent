@@ -1,0 +1,166 @@
+---
+name: typecho-agent
+description: Use when managing a Typecho blog via the TypechoAgent plugin (JSON API). Create/edit/delete posts, pages, manage comments, categories, tags, media, view stats and users.
+---
+
+# TypechoAgent
+
+AI 管理 Typecho 博客的 JSON API 插件。
+
+## 安装
+
+```
+usr/plugins/TypechoAgent/
+├── Plugin.php      # 激活
+└── Action.php      # API 处理器
+```
+
+1. 上传 `usr/plugins/TypechoAgent/` 到服务器
+2. 后台 → 控制台 → 插件 → 激活 TypechoAgent
+3. 设置 API Key
+
+> ⚠ **安全警告：必须使用 HTTPS**  
+> API Key 在每次请求中以明文传输，未使用 HTTPS 时可能被中间人窃取。  
+> 请确保博客已配置有效的 SSL 证书，并使用 `https://` 访问端点。
+
+## 端点
+
+```
+POST /action/ta
+Content-Type: application/json
+```
+
+## 认证
+
+除 `ping`、`setApiKey` 外，所有请求在 `params` 中传 `api_key`。
+
+初始设置：
+```json
+{ "action": "setApiKey", "params": { "password": "管理员密码", "api_key": "你的key" } }
+```
+
+## fields 参数
+
+`listPosts`、`searchPosts`、`listPages` 支持 `fields` 参数控制返回字段：
+
+| 值 | 说明 |
+|------|------|
+| `full` (默认) | 完整内容（含 text、categories、tags） |
+| `summary` | 不含 text，含 excerpt（前 200 字摘要）|
+| `meta` | 仅基本信息（cid/title/slug/status/created/author），不含正文和分类标签 |
+
+## 响应格式
+
+```json
+{ "success": true, "data": [...], "total": 26, "page": 1, "pageSize": 10 }
+```
+
+## 错误响应
+
+```json
+{ "error": true, "message": "错误描述" }
+```
+
+HTTP 状态码：400（参数错误）、401（鉴权失败）、404（资源/操作不存在）、405（方法不允许）、500（服务器错误）。
+
+## 操作参考
+
+### 系统
+
+| 操作 | 参数 | 说明 |
+|------|------|------|
+| `ping` | — | 连通性测试 |
+| `setApiKey` | password, api_key | 设置 API Key |
+| `stats` | — | 博客统计概览 |
+
+### 文章
+
+| 操作 | 参数 | 说明 |
+|------|------|------|
+| `listPosts` | page?, pageSize?, fields?, status?, categoryId?, tagId?, authorId? | 分页列表（支持过滤） |
+| `getPost` | id | 详情（含分类/标签/作者） |
+| `createPost` | title, text?, format?, status?, categoryIds?, tags?, slug?, created? | 新建 |
+| `updatePost` | id, title?, text?, format?, status?, categoryIds?, tags?, created? | 更新 |
+| `deletePost` | id | 删除 |
+| `searchPosts` | keyword, page?, pageSize?, fields? | 按标题/内容搜索 |
+
+### 评论
+
+| 操作 | 参数 | 说明 |
+|------|------|------|
+| `listComments` | page?, pageSize?, postId?, status? | 分页列表 |
+| `getComment` | id | 详情 |
+| `editComment` | id, status | 审核：`approved` / `waiting` / `spam` |
+| `updateComment` | id, text?, author?, mail?, url? | 编辑正文/作者信息 |
+| `deleteComment` | id | 删除 |
+
+### 分类
+
+| 操作 | 参数 | 说明 |
+|------|------|------|
+| `getCategories` | — | 所有分类 |
+| `setPostCategories` | postId, categoryIds[] | 设置文章分类 |
+| `createCategory` | name, slug? | 新建分类 |
+| `deleteCategory` | mid | 删除分类（需无子分类） |
+
+### 标签
+
+| 操作 | 参数 | 说明 |
+|------|------|------|
+| `getTags` | — | 所有标签 |
+| `createTag` | name, slug? | 新建标签 |
+| `deleteTag` | mid | 删除标签 |
+
+### 页面
+
+| 操作 | 参数 | 说明 |
+|------|------|------|
+| `listPages` | page?, pageSize?, fields? | 分页列表 |
+| `getPage` | id | 详情 |
+| `createPage` | title, text?, format?, status?, slug?, created? | 新建 |
+| `updatePage` | id, title?, text?, format?, status?, created? | 更新 |
+| `deletePage` | id | 删除 |
+
+### 用户 & 媒体
+
+| 操作 | 参数 | 说明 |
+|------|------|------|
+| `listUsers` | — | 所有用户/作者 |
+| `listMedia` | page?, pageSize? | 附件/媒体列表 |
+
+## TypeScript 用法
+
+```typescript
+import { createClient } from './skill/client'
+import { config } from './skill/config'
+
+const blog = createClient(config)
+
+// 概览
+const stat = await blog.stats()
+
+// 文章（支持分页信息和摘要模式）
+const { data: posts, total } = await blog.listPosts(1, 10, 'summary')
+const { data: results } = await blog.searchPosts('typecho')
+
+// 评论审核
+await blog.editComment(23, 'approved')
+await blog.editComment(24, 'spam')
+
+// 编辑评论内容
+await blog.updateComment(23, { text: '新内容', author: '新作者' })
+
+// 分类 & 标签
+await blog.setPostCategories(1, [18])
+await blog.createCategory('技术')
+await blog.deleteCategory(99)
+await blog.createTag('TypeScript')
+await blog.deleteTag(42)
+
+// 页面
+await blog.listPages()
+await blog.createPage({ title: '关于我' })
+
+// 媒体
+const { data: media } = await blog.listMedia()
+```

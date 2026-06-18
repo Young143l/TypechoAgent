@@ -1,0 +1,10 @@
+{
+  "name": "typecho-agent-skill",
+  "version": "1.0.0",
+  "type": "module",
+  "private": true,
+  "description": "Typecho blog management skill for opencode",
+  "devDependencies": {
+    "@types/node": "^25.9.3"
+  }
+}
