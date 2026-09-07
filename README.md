@@ -62,7 +62,7 @@ curl -X POST https://your-blog.com/action/ta \
   -d '{"action":"setApiKey","params":{"password":"管理员密码","api_key":"你的key"}}'
 ```
 
-> 首次安装时 `password` 可留空（`""`）以跳过旧密码验证。
+> `password` 是 **Typecho 后台登录密码**（users 表 administrator 用户的密码），用于验证操作者身份；连接错误次数过多会触发 1 小时限制。`api_key` 填你要设置的新 Key（用于替换旧 Key）。
 
 ### 3. 配置并使用 CLI
 
