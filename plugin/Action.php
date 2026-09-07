@@ -181,6 +181,25 @@ class Action extends Widget implements ActionInterface
         @unlink($file);
     }
 
+    /**
+     * 事务内统一走写连接（WRITE 池）：SQLite 下 READ/WRITE 是两个独立连接，
+     * READ 连接读不到 WRITE 连接未提交的事务数据，也会与写锁互等造成死锁
+     */
+    private function fetchAllW(Db $db, $query): array
+    {
+        return $db->fetchAll($db->query($query, Db::WRITE));
+    }
+
+    private function fetchRowW(Db $db, $query): ?array
+    {
+        return $db->fetchRow($db->query($query, Db::WRITE));
+    }
+
+    private function fetchObjectW(Db $db, $query): ?\stdClass
+    {
+        return $db->fetchObject($db->query($query, Db::WRITE));
+    }
+
     private function checkApiKey(Db $db, string $key): bool
     {
         if (!$key) return false;
@@ -279,7 +298,7 @@ class Action extends Widget implements ActionInterface
             return ['error' => true, 'message' => 'status 无效'];
         }
 
-        $db->query('BEGIN');
+        $db->query('BEGIN', Db::WRITE);
         try {
             $cid = $db->query($db->insert('table.contents')->rows([
                 'title' => $title, 'slug' => $p['slug'] ?? Common::slugName($title),
@@ -293,10 +312,10 @@ class Action extends Widget implements ActionInterface
 
             $this->syncCats($db, $cid, $p['categoryIds'] ?? []);
             $this->syncTags($db, $cid, $p['tags'] ?? '');
-            $db->query('COMMIT');
+            $db->query('COMMIT', Db::WRITE);
             return ['success' => true, 'data' => ['cid' => $cid]];
         } catch (\Exception $e) {
-            $db->query('ROLLBACK');
+            $db->query('ROLLBACK', Db::WRITE);
             return ['error' => true, 'message' => $e->getMessage()];
         }
     }
@@ -325,15 +344,15 @@ class Action extends Widget implements ActionInterface
         foreach (['allowComment', 'allowPing', 'allowFeed'] as $f) {
             if (isset($p[$f])) $up[$f] = (int)$p[$f];
         }
-        $db->query('BEGIN');
+        $db->query('BEGIN', Db::WRITE);
         try {
             if ($up) { $up['modified'] = time(); $db->query($db->update('table.contents')->rows($up)->where('cid = ?', $id)); }
             if (isset($p['categoryIds'])) $this->syncCats($db, $id, $p['categoryIds']);
             if (isset($p['tags'])) $this->syncTags($db, $id, $p['tags']);
-            $db->query('COMMIT');
+            $db->query('COMMIT', Db::WRITE);
             return ['success' => true];
         } catch (\Exception $e) {
-            $db->query('ROLLBACK');
+            $db->query('ROLLBACK', Db::WRITE);
             return ['error' => true, 'message' => $e->getMessage()];
         }
     }
@@ -343,9 +362,9 @@ class Action extends Widget implements ActionInterface
         $id = (int)($p['id'] ?? 0);
         if (!$id) return ['error' => true, 'message' => '缺少 id'];
 
-        $db->query('BEGIN');
+        $db->query('BEGIN', Db::WRITE);
         try {
-            $mids = $db->fetchAll(
+            $mids = $this->fetchAllW($db,
                 $db->select('mid')->from('table.relationships')->where('cid = ?', $id)
             );
             $affected = array_map(fn($r) => (int)$r['mid'], $mids);
@@ -355,10 +374,10 @@ class Action extends Widget implements ActionInterface
             }
 
             $this->recountMetas($db, $affected);
-            $db->query('COMMIT');
+            $db->query('COMMIT', Db::WRITE);
             return ['success' => true];
         } catch (\Exception $e) {
-            $db->query('ROLLBACK');
+            $db->query('ROLLBACK', Db::WRITE);
             return ['error' => true, 'message' => $e->getMessage()];
         }
     }
@@ -575,7 +594,7 @@ class Action extends Widget implements ActionInterface
             return ['error' => true, 'message' => 'status 无效'];
         }
 
-        $db->query('BEGIN');
+        $db->query('BEGIN', Db::WRITE);
         try {
             $now = isset($p['created']) ? (int)$p['created'] : time();
             $cid = $db->query($db->insert('table.contents')->rows([
@@ -587,10 +606,10 @@ class Action extends Widget implements ActionInterface
                 'allowPing' => (int)($p['allowPing'] ?? 0),
                 'allowFeed' => (int)($p['allowFeed'] ?? 0),
             ]));
-            $db->query('COMMIT');
+            $db->query('COMMIT', Db::WRITE);
             return ['success' => true, 'data' => ['cid' => $cid]];
         } catch (\Exception $e) {
-            $db->query('ROLLBACK');
+            $db->query('ROLLBACK', Db::WRITE);
             return ['error' => true, 'message' => $e->getMessage()];
         }
     }
@@ -620,16 +639,16 @@ class Action extends Widget implements ActionInterface
             if (isset($p[$f])) $up[$f] = (int)$p[$f];
         }
 
-        $db->query('BEGIN');
+        $db->query('BEGIN', Db::WRITE);
         try {
             if ($up) {
                 $up['modified'] = time();
                 $db->query($db->update('table.contents')->rows($up)->where('cid = ?', $id));
             }
-            $db->query('COMMIT');
+            $db->query('COMMIT', Db::WRITE);
             return ['success' => true];
         } catch (\Exception $e) {
-            $db->query('ROLLBACK');
+            $db->query('ROLLBACK', Db::WRITE);
             return ['error' => true, 'message' => $e->getMessage()];
         }
     }
@@ -639,9 +658,9 @@ class Action extends Widget implements ActionInterface
         $id = (int)($p['id'] ?? 0);
         if (!$id) return ['error' => true, 'message' => '缺少 id'];
 
-        $db->query('BEGIN');
+        $db->query('BEGIN', Db::WRITE);
         try {
-            $mids = $db->fetchAll(
+            $mids = $this->fetchAllW($db,
                 $db->select('mid')->from('table.relationships')->where('cid = ?', $id)
             );
             $affected = array_map(fn($r) => (int)$r['mid'], $mids);
@@ -651,10 +670,10 @@ class Action extends Widget implements ActionInterface
             }
 
             $this->recountMetas($db, $affected);
-            $db->query('COMMIT');
+            $db->query('COMMIT', Db::WRITE);
             return ['success' => true];
         } catch (\Exception $e) {
-            $db->query('ROLLBACK');
+            $db->query('ROLLBACK', Db::WRITE);
             return ['error' => true, 'message' => $e->getMessage()];
         }
     }
@@ -850,7 +869,7 @@ class Action extends Widget implements ActionInterface
 
     private function getAdminUid(Db $db): int
     {
-        $admin = $db->fetchRow(
+        $admin = $this->fetchRowW($db,
             $db->select('uid')->from('table.users')
                 ->where('group = ?', 'administrator')->limit(1)
         );
@@ -881,7 +900,7 @@ class Action extends Widget implements ActionInterface
 
     private function syncCats(Db $db, int $cid, array $ids): void
     {
-        $oldRows = $db->fetchAll(
+        $oldRows = $this->fetchAllW($db,
             $db->select('mid')->from('table.relationships')->where('cid = ?', $cid)
         );
         $oldMids = array_map(fn($r) => (int)$r['mid'], $oldRows);
@@ -901,7 +920,7 @@ class Action extends Widget implements ActionInterface
 
     private function syncTags(Db $db, int $cid, string $tags): void
     {
-        $oldRows = $db->fetchAll(
+        $oldRows = $this->fetchAllW($db,
             $db->select('r.mid')->from('table.relationships r')
                 ->join('table.metas m', 'm.mid = r.mid')
                 ->where('r.cid = ?', $cid)
@@ -918,7 +937,7 @@ class Action extends Widget implements ActionInterface
 
         $newMids = [];
         foreach (array_filter(array_unique(array_map('trim', explode(',', str_replace('，', ',', $tags))))) as $name) {
-            $row = $db->fetchRow($db->select('mid')->from('table.metas')->where('type = ? AND name = ?', 'tag', $name)->limit(1));
+            $row = $this->fetchRowW($db, $db->select('mid')->from('table.metas')->where('type = ? AND name = ?', 'tag', $name)->limit(1));
             $mid = $row ? (int)$row['mid'] : $db->query($db->insert('table.metas')->rows([
                 'name' => $name, 'slug' => Common::slugName($name), 'type' => 'tag', 'count' => 0,
             ]));
@@ -934,7 +953,7 @@ class Action extends Widget implements ActionInterface
         if (empty($mids)) return;
         $mids = array_unique(array_map('intval', $mids));
         foreach ($mids as $mid) {
-            $count = (int)$db->fetchObject(
+            $count = (int)$this->fetchObjectW($db,
                 $db->select(['COUNT(*)' => 'num'])->from('table.relationships')->where('mid = ?', $mid)
             )->num;
             $db->query($db->update('table.metas')->rows(['count' => $count])->where('mid = ?', $mid));
