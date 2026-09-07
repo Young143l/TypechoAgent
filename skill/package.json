@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "type": "module",
   "private": true,
-  "description": "Typecho blog management skill for opencode",
+  "description": "Typecho 博客管理技能：TypeScript 客户端 + CLI（发布/更新/删除文章、评论审核、索引重建、状态查看）",
   "devDependencies": {
     "@types/node": "^25.9.3"
   }

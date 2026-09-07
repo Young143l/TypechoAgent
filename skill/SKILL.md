@@ -39,6 +39,18 @@ Content-Type: application/json
 { "action": "setApiKey", "params": { "password": "管理员密码", "api_key": "你的key" } }
 ```
 
+## 配置（技能侧）
+
+技能通过 `config.ts` 或环境变量读取博客地址与 API Key：
+
+```bash
+export TYPECHO_URL="https://your-blog.com"
+export TYPECHO_API_KEY="你的key"
+```
+
+> ⚠ **安全警告：不要把真实 API Key 提交到任何公开仓库**。
+> config.ts 中的 fallback 应留空，真实 Key 通过环境变量注入。
+
 ## fields 参数
 
 `listPosts`、`searchPosts`、`listPages` 支持 `fields` 参数控制返回字段：
@@ -131,8 +143,8 @@ HTTP 状态码：400（参数错误）、401（鉴权失败）、404（资源/�
 ## TypeScript 用法
 
 ```typescript
-import { createClient } from './skill/client'
-import { config } from './skill/config'
+import { createClient } from './client'
+import { config } from './config'
 
 const blog = createClient(config)
 
@@ -164,3 +176,45 @@ await blog.createPage({ title: '关于我' })
 // 媒体
 const { data: media } = await blog.listMedia()
 ```
+
+## CLI 用法
+
+skill 自带命令行工具（`scripts/cli.ts`，需 Node 18+ 与全局 `tsx`），覆盖日常操作的常用命令：
+
+```bash
+tsx skill/scripts/cli.ts <命令> [参数]
+```
+
+| 命令 | 说明 |
+|------|------|
+| `status` | 博客状态概览：连通性、文章/页面/评论统计、分类分布、待审核评论、页面列表 |
+| `create-post <md文件> [--draft]` | 发布新文章。读取本地 Markdown 的 front matter（title/date/category/tags）→ 创建 → **自动回写 cid** |
+| `update-post <cid>` | 用本地 md 文件同步更新线上文章 |
+| `delete-post <cid>` | 删除线上文章 |
+| `comments [--status=approved\|waiting\|spam]` | 列出评论（默认全部，可过滤） |
+| `comment <coid> <approved\|waiting\|spam>` | 评论审核 |
+| `update-page <cid>` | 用本地 md 文件同步更新页面 |
+| `search <关键词>` | 按标题/内容搜索文章 |
+| `regen-index` | 扫描本地 Markdown 文章目录重建索引（可选：配合"本地 md 文章目录 + cid 回写"的工作流使用） |
+| `help` | 显示帮助 |
+
+### 示例
+
+```bash
+# 查看博客状况
+tsx skill/scripts/cli.ts status
+
+# 发布新文章（front matter 含 title/date/category/tags，发布后 cid 自动回写）
+tsx skill/scripts/cli.ts create-post 新文章.md
+
+# 更新文章（先改本地文件，再同步）
+tsx skill/scripts/cli.ts update-post 40
+
+# 评论审核
+tsx skill/scripts/cli.ts comment 23 approved
+
+# 搜索
+tsx skill/scripts/cli.ts search typecho
+```
+
+> `create-post` / `update-post` / `regen-index` 依赖"本地 Markdown 文章目录"约定（目录名可在 `scripts/cli.ts` 顶部的 `POSTS_DIR` / `PAGES_DIR` 中修改），按 cid 与本地文件双向同步。
