@@ -4,41 +4,45 @@
 ![Typecho](https://img.shields.io/badge/Typecho-1.2%2B-brightgreen)
 ![PHP](https://img.shields.io/badge/PHP-7.4%2B-777bb4)
 
-AI 管理 Typecho 博客的完整方案。包含 Typecho 插件 + Agent Skill（TypeScript SDK）。
+命令行管理 Typecho 博客：**TypechoAgent 插件**（JSON API 服务端）+ **CLI**（命令行工具）。
+
+## 工作原理
+
+插件在博客上注册一个 `POST /action/ta` 的 JSON API 端点，CLI 直连它完成发文、改稿、评论审核等全部操作——**不 SSH、不进后台**，配合本地 Markdown 文章目录即可管理整站内容。
 
 ## 特性
 
 - **安全认证** — API Key + 管理员密码双重鉴权
-- **20+ API 操作** — 覆盖文章、页面、评论、分类、标签、用户、媒体全功能
-- **TypeScript SDK + CLI** — 开箱即用的客户端与命令行工具，类型安全
+- **28 个 API 操作** — 覆盖文章、页面、评论、分类、标签、用户、媒体全功能
+- **CLI** — 状态总览、发文自动回写 cid、评论一键审核、全文搜索
 - **兼容 Typecho 1.2+** — PHP 7.4+，支持 MySQL / SQLite / PostgreSQL
-- **数据库事务可靠** — 事务内读写统一走写连接，SQLite 下无死锁（[见兼容性说明](#数据库兼容性说明)）
+- **事务可靠** — 事务内读写统一走写连接，SQLite 下无死锁（[见兼容性说明](#数据库兼容性说明)）
 
 ## 结构
 
 ```
 TypechoAgent/
-├── plugin/              # Typecho 插件
+├── plugin/              # Typecho 插件（API 服务端）
 │   ├── Plugin.php       # 激活，注册 /action/ta 路由
-│   └── Action.php       # JSON API 端点（20 个操作）
-├── skill/               # Agent Skill + TypeScript SDK
-│   ├── client.ts        # TypeScript 客户端（23 个操作方法）
-│   ├── config.ts        # 博客地址 + API Key
+│   └── Action.php       # JSON API 端点（28 个操作）
+├── skill/               # CLI 及其依赖
 │   ├── scripts/
 │   │   └── cli.ts       # CLI 命令行工具
+│   ├── client.ts        # API 客户端（CLI 依赖，可独立用作 TS SDK）
+│   ├── config.ts        # 博客地址 + API Key
 │   ├── SKILL.md         # 完整操作参考
-│   └── examples/
-│       └── manage-blog.ts
+│   ├── package.json
+│   └── tsconfig.json
 ├── LICENSE
 └── README.md
 ```
 
 ## 前提要求
 
-- Typecho 1.2+
-- PHP 7.4+
-- MySQL 或 SQLite
+- Typecho 1.2+，PHP 7.4+
+- MySQL / SQLite / PostgreSQL
 - SSL 证书（[见安全说明](#安全说明)）
+- 本地使用 CLI：Node 18+，`npm i -g tsx`
 
 ## 快速开始
 
@@ -60,79 +64,86 @@ curl -X POST https://your-blog.com/action/ta \
 
 > 首次安装时 `password` 可留空（`""`）以跳过旧密码验证。
 
-### 3. CLI 用法（推荐）
+### 3. 配置并使用 CLI
 
 ```bash
-# 需 Node 18+ 与 tsx：npm i -g tsx
 export TYPECHO_URL="https://your-blog.com"
 export TYPECHO_API_KEY="你的key"
 
 tsx skill/scripts/cli.ts status
+```
+
+> API Key 只通过环境变量或本地未提交的 `config.ts` 注入，**不要提交到任何公开仓库**。
+
+## CLI 命令
+
+在仓库（或技能安装）根目录执行：
+
+```bash
+tsx skill/scripts/cli.ts <命令> [参数]
+```
+
+| 命令 | 说明 |
+|------|------|
+| `status` | 博客状态概览：连通性、文章/页面/评论统计、分类分布、待审核评论、页面列表 |
+| `create-post <md文件> [--draft]` | 发布新文章。读取本地 Markdown 的 front matter（title/date/category/tags）→ 创建 → **自动回写 cid** |
+| `update-post <cid>` | 用本地 md 文件同步更新线上文章 |
+| `delete-post <cid>` | 删除线上文章 |
+| `comments [--status=approved\|waiting\|spam]` | 列出评论（默认全部，可过滤） |
+| `comment <coid> <approved\|waiting\|spam>` | 评论审核 |
+| `update-page <cid>` | 用本地 md 文件同步更新页面 |
+| `search <关键词>` | 按标题/内容搜索文章 |
+| `regen-index` | 扫描本地 Markdown 文章目录重建索引 |
+| `help` | 显示帮助 |
+
+### 示例
+
+```bash
+# 查看博客状况
+tsx skill/scripts/cli.ts status
+
+# 发布新文章（front matter 含 title/date/category/tags，发布后 cid 自动回写）
 tsx skill/scripts/cli.ts create-post 新文章.md
+
+# 更新文章（先改本地文件，再同步）
+tsx skill/scripts/cli.ts update-post 40
+
+# 评论审核
 tsx skill/scripts/cli.ts comment 23 approved
+
+# 搜索
+tsx skill/scripts/cli.ts search typecho
 ```
 
-全部命令见 [`skill/SKILL.md`](skill/SKILL.md#cli-用法)。
+## 本地 Markdown 工作流（可选）
 
-### 4. TypeScript SDK 用法
+CLI 的 `create-post` / `update-post` / `regen-index` 支持一种「本地为源」的写作流：
 
-```typescript
-import { createClient } from './skill/client'
-import { config } from './skill/config'
-
-const blog = createClient(config)
-
-// 博客概览
-const stat = await blog.stats()
-
-// 文章管理
-await blog.listPosts(1, 10, 'summary')
-await blog.createPost({ title: '新文章', text: '内容', categoryIds: [19] })
-
-// 评论审核
-await blog.editComment(23, 'approved')
-
-// 分类 & 标签
-await blog.setPostCategories(1, [18])
-await blog.createTag('TypeScript')
+```
+你的仓库/
+├── 文章/          # {编号}.{标题}.md，front matter 含 cid（发布后自动回写）
+│   └── _index.md  # regen-index 自动生成的索引
+└── 页面/          # about.md、links.md 等
 ```
 
-完整示例见 [`skill/examples/manage-blog.ts`](skill/examples/manage-blog.ts)。
+- `create-post` 发布后把线上 cid 写回本地文件，此后 `update-post <cid>` 以本地文件为准同步
+- 目录名可在 `scripts/cli.ts` 顶部的 `POSTS_DIR` / `PAGES_DIR` 中修改
 
-## API 操作
+## API 操作参考
 
-| 类别 | 操作 | 说明 |
-|------|------|------|
-| 系统 | `ping` | 连通性测试 |
-| | `setApiKey` | 设置 API Key |
-| | `stats` | 博客统计概览 |
-| 文章 | `listPosts` | 分页列表（支持 status/categoryId/tagId/authorId 过滤及 fields 参数） |
-| | `getPost` | 详情（含分类/标签/作者） |
-| | `createPost` | 新建 |
-| | `updatePost` | 更新 |
-| | `deletePost` | 删除 |
-| | `searchPosts` | 按关键词搜索 |
-| 评论 | `listComments` | 分页列表（支持按 status 和 postId 过滤） |
-| | `getComment` | 详情 |
-| | `editComment` | 审核（approved / waiting / spam） |
-| | `updateComment` | 编辑正文/作者/邮箱/网址 |
-| | `deleteComment` | 删除 |
-| 分类 | `getCategories` | 所有分类 |
-| | `setPostCategories` | 设置文章分类 |
-| | `createCategory` | 新建分类 |
-| | `deleteCategory` | 删除分类（需无子分类） |
-| 标签 | `getTags` | 所有标签 |
-| | `createTag` | 新建标签 |
-| | `deleteTag` | 删除标签 |
-| 页面 | `listPages` | 分页列表 |
-| | `getPage` | 详情 |
-| | `createPage` | 新建 |
-| | `updatePage` | 更新 |
-| | `deletePage` | 删除 |
-| 用户 | `listUsers` | 所有用户/作者 |
-| 媒体 | `listMedia` | 附件/媒体列表 |
+CLI 底层的全部 API 操作（也可通过 `client.ts` 直接调用）：
 
-完整的请求/响应格式及字段说明见 [`skill/SKILL.md`](skill/SKILL.md)。
+| 类别 | 操作 |
+|------|------|
+| 系统 | `ping` `setApiKey` `stats` |
+| 文章 | `listPosts` `getPost` `createPost` `updatePost` `deletePost` `searchPosts` |
+| 评论 | `listComments` `getComment` `editComment` `updateComment` `deleteComment` |
+| 分类 | `getCategories` `setPostCategories` `createCategory` `deleteCategory` |
+| 标签 | `getTags` `createTag` `deleteTag` |
+| 页面 | `listPages` `getPage` `createPage` `updatePage` `deletePage` |
+| 用户/媒体 | `listUsers` `listMedia` |
+
+请求/响应格式与参数详见 [`skill/SKILL.md`](skill/SKILL.md)。
 
 ## 数据库兼容性说明
 
@@ -151,18 +162,17 @@ await blog.createTag('TypeScript')
 ## 开发
 
 ```bash
-# skill 目录为 TypeScript 项目
-cd skill
-bun install
-
 # 类型检查
-bun run tsc --noEmit
+cd skill && npx tsc --noEmit
+
+# 运行 CLI（开发）
+tsx skill/scripts/cli.ts status
 ```
 
 ## 相关链接
 
 - [作者博客](https://www.young143.top)
-- [GitHub Issues](https://github.com/Young143/TypechoAgent/issues)
+- [GitHub Issues](https://github.com/Young143l/TypechoAgent/issues)
 - [Typecho 官网](https://typecho.org)
 
 ## 证书

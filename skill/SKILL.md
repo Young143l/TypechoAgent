@@ -140,42 +140,9 @@ HTTP 状态码：400（参数错误）、401（鉴权失败）、404（资源/�
 | `listUsers` | — | 所有用户/作者 |
 | `listMedia` | page?, pageSize? | 附件/媒体列表 |
 
-## TypeScript 用法
+## SDK
 
-```typescript
-import { createClient } from './client'
-import { config } from './config'
-
-const blog = createClient(config)
-
-// 概览
-const stat = await blog.stats()
-
-// 文章（支持分页信息和摘要模式）
-const { data: posts, total } = await blog.listPosts(1, 10, 'summary')
-const { data: results } = await blog.searchPosts('typecho')
-
-// 评论审核
-await blog.editComment(23, 'approved')
-await blog.editComment(24, 'spam')
-
-// 编辑评论内容
-await blog.updateComment(23, { text: '新内容', author: '新作者' })
-
-// 分类 & 标签
-await blog.setPostCategories(1, [18])
-await blog.createCategory('技术')
-await blog.deleteCategory(99)
-await blog.createTag('TypeScript')
-await blog.deleteTag(42)
-
-// 页面
-await blog.listPages()
-await blog.createPage({ title: '关于我' })
-
-// 媒体
-const { data: media } = await blog.listMedia()
-```
+`client.ts` 除供 CLI 内部使用外，也可独立用作 TypeScript SDK（23 个方法，类型安全），直接调用 `/action/ta` 的全部操作。方法签名见文件内注释。
 
 ## CLI 用法
 

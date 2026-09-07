@@ -22,7 +22,7 @@ import { config } from '../config'
 const blog = createClient({ url: config.url, apiKey: config.apiKey })
 
 // 项目根目录 = 本文件 (<skill目录>/scripts/cli.ts) 上溯四级
-const ROOT = join(import.meta.dirname, '..', '..', '..', '..')
+const ROOT = process.cwd()
 const POSTS_DIR = join(ROOT, '文章')
 const PAGES_DIR = join(ROOT, '页面')
 const INDEX_FILE = join(POSTS_DIR, '_index.md')
