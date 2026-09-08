@@ -14,7 +14,7 @@ const FETCH_TIMEOUT = 30000
 
 export function createClient(options: ClientOptions) {
   const { url, apiKey } = options
-  const baseUrl = url.replace(/\/+$/, '') + '/action/ta'
+  const baseUrl = url.replace(/\/+$/, '') + '/action/tc'
 
   async function call<T = unknown>(action: string, params: Record<string, unknown> = {}): Promise<T> {
     const noAuth = action === 'ping' || action === 'setApiKey'

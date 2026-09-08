@@ -1,6 +1,6 @@
 <?php
 
-namespace TypechoPlugin\TypechoAgent;
+namespace TypechoPlugin\TypechoCli;
 
 use Typecho\Common;
 use Typecho\Db;
@@ -13,7 +13,7 @@ if (!defined('__TYPECHO_ROOT_DIR__')) {
 
 class Action extends Widget implements ActionInterface
 {
-    private const CONFIG_KEY = 'plugin:TypechoAgent';
+    private const CONFIG_KEY = 'plugin:TypechoCli';
     private const VALID_STATUSES = ['publish', 'draft', 'private', 'hidden', 'waiting'];
 
     public function execute()

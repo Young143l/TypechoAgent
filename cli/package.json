@@ -1,0 +1,45 @@
+{
+  "name": "typecho-cli",
+  "version": "2.1.0",
+  "type": "module",
+  "description": "Typecho 博客管理 CLI：发文/改稿/删文章/评论审核/状态总览/搜索，配合 TypechoCli 插件使用",
+  "bin": {
+    "typecho-cli": "dist/cli.js"
+  },
+  "main": "./dist/client.js",
+  "exports": {
+    ".": "./dist/client.js",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "keywords": [
+    "typecho",
+    "blog",
+    "cli",
+    "markdown",
+    "agent"
+  ],
+  "scripts": {
+    "build": "esbuild scripts/cli.ts --bundle --platform=node --format=esm --target=node18 --outfile=dist/cli.js && esbuild client.ts --bundle --platform=node --format=esm --target=node18 --outfile=dist/client.js && tsc client.ts --declaration --emitDeclarationOnly --outDir dist --skipLibCheck",
+    "prepack": "npm run build && cp ../README.md ./README.md",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/node": "^25.9.3",
+    "esbuild": "^0.27.2",
+    "typescript": "^5.9.3"
+  },
+  "license": "GPL-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Young143l/TypechoCli.git"
+  },
+  "homepage": "https://github.com/Young143l/TypechoCli#readme",
+  "bugs": "https://github.com/Young143l/TypechoCli/issues"
+}

@@ -1,22 +1,22 @@
 ---
-name: typecho-agent
-description: Use when managing a Typecho blog via the TypechoAgent plugin (JSON API). Create/edit/delete posts, pages, manage comments, categories, tags, media, view stats and users.
+name: typecho-cli
+description: Use when managing a Typecho blog via the TypechoCli plugin (JSON API). Create/edit/delete posts, pages, manage comments, categories, tags, media, view stats and users.
 ---
 
-# TypechoAgent
+# TypechoCli
 
 AI 管理 Typecho 博客的 JSON API 插件。
 
 ## 安装
 
 ```
-usr/plugins/TypechoAgent/
+usr/plugins/TypechoCli/
 ├── Plugin.php      # 激活
 └── Action.php      # API 处理器
 ```
 
-1. 上传 `usr/plugins/TypechoAgent/` 到服务器
-2. 后台 → 控制台 → 插件 → 激活 TypechoAgent
+1. 上传 `usr/plugins/TypechoCli/` 到服务器
+2. 后台 → 控制台 → 插件 → 激活 TypechoCli
 3. 设置 API Key
 
 > ⚠ **安全警告：必须使用 HTTPS**  
@@ -26,7 +26,7 @@ usr/plugins/TypechoAgent/
 ## 端点
 
 ```
-POST /action/ta
+POST /action/tc
 Content-Type: application/json
 ```
 
@@ -142,7 +142,7 @@ HTTP 状态码：400（参数错误）、401（鉴权失败）、404（资源/�
 
 ## SDK
 
-`client.ts` 除供 CLI 内部使用外，也可独立用作 TypeScript SDK（23 个方法，类型安全），直接调用 `/action/ta` 的全部操作。方法签名见文件内注释。
+`client.ts` 除供 CLI 内部使用外，也可独立用作 TypeScript SDK（23 个方法，类型安全），直接调用 `/action/tc` 的全部操作。方法签名见文件内注释。
 
 ## CLI 用法
 

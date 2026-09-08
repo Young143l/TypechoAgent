@@ -195,7 +195,7 @@ async function cmdRegenIndex() {
     byCat.get(cat)!.push(p)
   }
 
-  const sortByDate = (a: { fm: FrontMatter }, b: { fm: FrontMatter }) => {
+  const sortByDate = (a: { fm: FrontMatter; file: string }, b: { fm: FrontMatter; file: string }) => {
     const da = a.fm.date ?? ''
     const db = b.fm.date ?? ''
     return da < db ? 1 : da > db ? -1 : a.file.localeCompare(b.file)
