@@ -78,8 +78,8 @@ function writeCid(file: string, cid: number) {
   if (!m) throw new Error(`front matter 缺失: ${file}`)
   const fm = m[1]
   let next: string
-  if (/^cid\s*:/m.test(fm)) {
-    next = fm.replace(/^(cid\s*:\s*).*$/m, `$1${cid}`)
+  if (/^cid[ \t]*:/m.test(fm)) {
+    next = fm.replace(/^(cid[ \t]*:[ \t]*).*$/m, `$1${cid}`)
   } else {
     const dateLine = fm.match(/^date\s*:.*$/m)
     if (dateLine) {

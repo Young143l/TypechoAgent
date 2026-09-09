@@ -187,17 +187,17 @@ class Action extends Widget implements ActionInterface
      */
     private function fetchAllW(Db $db, $query): array
     {
-        return $db->fetchAll($db->query($query, Db::WRITE));
+        return $db->fetchAll($db->query((string)$query, Db::WRITE));
     }
 
     private function fetchRowW(Db $db, $query): ?array
     {
-        return $db->fetchRow($db->query($query, Db::WRITE));
+        return $db->fetchRow($db->query((string)$query, Db::WRITE));
     }
 
     private function fetchObjectW(Db $db, $query): ?\stdClass
     {
-        return $db->fetchObject($db->query($query, Db::WRITE));
+        return $db->fetchObject($db->query((string)$query, Db::WRITE));
     }
 
     private function checkApiKey(Db $db, string $key): bool
