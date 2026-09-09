@@ -900,12 +900,21 @@ class Action extends Widget implements ActionInterface
 
     private function syncCats(Db $db, int $cid, array $ids): void
     {
+        // 只处理 category 类型的关系，避免误删该文章的标签关系
         $oldRows = $this->fetchAllW($db,
-            $db->select('mid')->from('table.relationships')->where('cid = ?', $cid)
+            $db->select('r.mid')->from('table.relationships r')
+                ->join('table.metas m', 'm.mid = r.mid')
+                ->where('r.cid = ?', $cid)
+                ->where('m.type = ?', 'category')
         );
         $oldMids = array_map(fn($r) => (int)$r['mid'], $oldRows);
 
-        $db->query($db->delete('table.relationships')->where('cid = ?', $cid));
+        if (!empty($oldMids)) {
+            $phs = implode(',', array_fill(0, count($oldMids), '?'));
+            $db->query($db->delete('table.relationships')
+                ->where('cid = ?', $cid)
+                ->where("mid IN ({$phs})", ...$oldMids));
+        }
         $newMids = [];
         foreach ($ids as $mid) {
             $mid = (int)$mid;
