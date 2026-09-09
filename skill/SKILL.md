@@ -41,15 +41,14 @@ Content-Type: application/json
 
 ## 配置（技能侧）
 
-技能通过 `config.ts` 或环境变量读取博客地址与 API Key：
+CLI 来自 npm 全局安装，认证只认两个环境变量：
 
 ```bash
 export TYPECHO_URL="https://your-blog.com"
-export TYPECHO_API_KEY="你的key"
+export TYPECHO_API_KEY="your-api-key"
 ```
 
-> ⚠ **安全警告：不要把真实 API Key 提交到任何公开仓库**。
-> config.ts 中的 fallback 应留空，真实 Key 通过环境变量注入。
+建议写入 `~/.zshrc`。CLI 在博客仓库根目录执行（从当前目录找 `文章/`、`页面/`）。
 
 ## fields 参数
 
@@ -139,10 +138,6 @@ HTTP 状态码：400（参数错误）、401（鉴权失败）、404（资源/�
 |------|------|------|
 | `listUsers` | — | 所有用户/作者 |
 | `listMedia` | page?, pageSize? | 附件/媒体列表 |
-
-## SDK
-
-`client.ts` 除供 CLI 内部使用外，也可独立用作 TypeScript SDK（23 个方法，类型安全），直接调用 `/action/tc` 的全部操作。方法签名见文件内注释。
 
 ## CLI 用法
 

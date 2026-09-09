@@ -2,7 +2,7 @@
 /**
  * Typecho 博客管理技能 CLI
  *
- * 在博客仓库根目录执行（认证沿用 config.ts / TYPECHO_URL、TYPECHO_API_KEY 环境变量）：
+ * 在博客仓库根目录执行（认证仅通过 TYPECHO_URL、TYPECHO_API_KEY 环境变量注入）：
  *
  *   tsx <skill目录>/scripts/cli.ts status
  *   tsx <skill目录>/scripts/cli.ts regen-index
@@ -17,11 +17,15 @@
 import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { join, basename } from 'node:path'
 import { createClient } from '../client'
-import { config } from '../config'
 
-const blog = createClient({ url: config.url, apiKey: config.apiKey })
+const url = process.env.TYPECHO_URL || ''
+const apiKey = process.env.TYPECHO_API_KEY || ''
+if (!url || !apiKey) {
+  console.warn('[TypechoCli] 请设置 TYPECHO_URL 和 TYPECHO_API_KEY 环境变量')
+}
+const blog = createClient({ url, apiKey })
 
-// 项目根目录 = 本文件 (<skill目录>/scripts/cli.ts) 上溯四级
+// 工作目录 = 执行命令时的当前目录（需为博客目录根，含 文章/ 与 页面/）
 const ROOT = process.cwd()
 const POSTS_DIR = join(ROOT, '文章')
 const PAGES_DIR = join(ROOT, '页面')

@@ -29,8 +29,7 @@ TypechoCli/
 ├── cli/                 # CLI（npm 包根）
 │   ├── scripts/
 │   │   └── cli.ts       # CLI 源码
-│   ├── client.ts        # API 客户端（可选 TS SDK）
-│   ├── config.ts        # 环境变量注入
+│   ├── client.ts        # API 客户端（CLI 内部依赖）
 │   └── package.json
 ├── skill/
 │   └── SKILL.md         # 完整操作参考（agent 说明书）
@@ -67,8 +66,6 @@ curl -X POST https://your-blog.com/action/tc \
 
 ### 3. 使用 CLI
 
-**方式 A：npm 安装（推荐）**
-
 ```bash
 npm i -g typecho-cli
 
@@ -78,27 +75,14 @@ export TYPECHO_API_KEY="你的key"
 typecho-cli status
 ```
 
-> API Key 只通过环境变量注入，**不要提交到任何公开仓库**。
-
-**方式 B：从源码运行**
-
-```bash
-git clone https://github.com/Young143l/TypechoCli.git
-cd TypechoCli && npm i && npm run build -w cli
-
-export TYPECHO_URL="https://your-blog.com"
-export TYPECHO_API_KEY="你的key"
-
-tsx cli/scripts/cli.ts status
-```
+> CLI 只认这两个环境变量（建议写入 `~/.zshrc`）；API Key 不要提交到任何公开仓库。
 
 ## CLI 命令
 
 在文章仓库根目录执行：
 
 ```bash
-typecho-cli <命令> [参数]          # npm 全局安装
-tsx cli/scripts/cli.ts <命令> [参数]  # 源码方式
+typecho-cli <命令> [参数]
 ```
 
 | 命令 | 说明 |
@@ -149,7 +133,7 @@ CLI 的 `create-post` / `update-post` / `regen-index` 支持一种「本地为�
 
 ## API 操作参考
 
-CLI 底层的全部 API 操作（也可通过 `client.ts` 直接调用）：
+CLI 底层调用的全部 API 操作（也可自行构造 HTTP 请求调用）：
 
 | 类别 | 操作 |
 |------|------|
@@ -187,7 +171,7 @@ cd cli && npm i && npm run typecheck
 npm run build
 
 # 运行 CLI（开发）
-tsx cli/scripts/cli.ts status
+env TYPECHO_URL=... TYPECHO_API_KEY=... node cli/dist/cli.js status
 ```
 
 ## 相关链接
