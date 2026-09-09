@@ -273,12 +273,22 @@ async function cmdUpdatePost(args: string[]) {
   const fm = parseFrontMatter(local.text)
   if (!fm) throw new Error(`${local.file} 缺少 YAML front matter`)
 
-  await blog.updatePost(cid, {
+  // 本地为准：front matter 里写了分类/标签就一并同步，未写则保持线上不变
+  const patch: Record<string, unknown> = {
     title: String(fm.title ?? ''),
     text: extractBody(local.text),
     format: 'markdown',
-  })
-  console.log(`已更新《${fm.title}》(cid=${cid})，来源 ${basename(local.file)}`)
+  }
+  if (fm.category) {
+    patch.categoryIds = [await categoryMid(String(fm.category))]
+  }
+  if (Array.isArray(fm.tags) && fm.tags.length) {
+    patch.tags = fm.tags.map(String).join(',')
+  }
+
+  await blog.updatePost(cid, patch)
+  const synced = ['标题', '正文', ...(patch.categoryIds ? ['分类'] : []), ...(patch.tags ? ['标签'] : [])].join('/')
+  console.log(`已更新《${fm.title}》(cid=${cid})，同步 ${synced}，来源 ${basename(local.file)}`)
   console.log('提示: 运行 regen-index 重建索引')
 }
 

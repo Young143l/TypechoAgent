@@ -1,6 +1,6 @@
 {
   "name": "typecho-cli",
-  "version": "2.2.0",
+  "version": "2.2.1",
   "type": "module",
   "description": "Typecho 博客管理 CLI：发文/改稿/删文章/评论审核/状态总览/搜索，配合 TypechoCli 插件使用",
   "bin": {
