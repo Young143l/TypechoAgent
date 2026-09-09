@@ -638,6 +638,7 @@ class Action extends Widget implements ActionInterface
         foreach (['allowComment', 'allowPing', 'allowFeed'] as $f) {
             if (isset($p[$f])) $up[$f] = (int)$p[$f];
         }
+        if (isset($p['order'])) $up['order'] = (int)$p['order'];
 
         $db->query('BEGIN', Db::WRITE);
         try {
@@ -858,7 +859,8 @@ class Action extends Widget implements ActionInterface
     {
         return ['coid' => (int)$r['coid'], 'cid' => (int)$r['cid'], 'created' => (int)$r['created'],
             'author' => $r['author'], 'authorId' => (int)$r['authorId'], 'mail' => $r['mail'],
-            'url' => $r['url'], 'text' => $r['text'], 'status' => $r['status'], 'parent' => (int)$r['parent']];
+            'url' => $r['url'], 'text' => $r['text'], 'status' => $r['status'], 'parent' => (int)$r['parent'],
+            'type' => $r['type'] ?? 'comment'];
     }
 
     private function fmtMeta(array $r): array
@@ -892,8 +894,15 @@ class Action extends Widget implements ActionInterface
         $row = $db->fetchRow($db->select('mid')->from('table.metas')
             ->where('type = ? AND (name = ? OR slug = ?)', $type, $name, $slug)->limit(1));
         if ($row) return ['error' => true, 'message' => '已存在同名 ' . $type];
+        if ($type === 'category' && !empty($p['parent'])) {
+            $parent = $db->fetchRow($db->select('mid', 'type')->from('table.metas')
+                ->where('mid = ? AND type = ?', (int)$p['parent'], 'category')->limit(1));
+            if (!$parent) return ['error' => true, 'message' => '父分类不存在'];
+        }
         $mid = $db->query($db->insert('table.metas')->rows([
             'name' => $name, 'slug' => $slug, 'type' => $type, 'count' => 0, 'order' => 0,
+            'parent' => (int)($p['parent'] ?? 0),
+            'description' => trim($p['description'] ?? ''),
         ]));
         return ['success' => true, 'data' => ['mid' => $mid]];
     }
