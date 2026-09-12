@@ -83,7 +83,7 @@ function writeCid(file: string, cid: number) {
   const fm = m[1]
   let next: string
   if (/^cid[ \t]*:/m.test(fm)) {
-    next = fm.replace(/^(cid[ \t]*:[ \t]*).*$/m, `$1${cid}`)
+    next = fm.replace(/^(cid[ \t]*:)[ \t]*.*$/m, `$1 ${cid}`)
   } else {
     const dateLine = fm.match(/^date\s*:.*$/m)
     if (dateLine) {
